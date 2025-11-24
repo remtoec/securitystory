@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>戀愛大冒險 (Relationship Adventure)</title>
     
-    <!-- Tailwind CSS (Via CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM (Via CDN) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel for JSX (Via CDN) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -53,14 +50,16 @@
         const RefreshCcw = (props) => <IconBase {...props}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></IconBase>;
         const User = (props) => <IconBase {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></IconBase>;
         const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const Activity = (props) => <IconBase {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></IconBase>;
+        const Lock = (props) => <IconBase {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></IconBase>;
+        const Thermometer = (props) => <IconBase {...props}><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" /></IconBase>;
+        const FileText = (props) => <IconBase {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></IconBase>;
+        const X = (props) => <IconBase {...props}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></IconBase>;
 
         // --- AUTO FIT TEXT COMPONENT ---
-        // Dynamically scales font size to fit the container height
-        const AutoFitText = ({ text, className, minSize = 12, maxSize = 22 }) => {
+        const AutoFitText = ({ content, className, minSize = 12, maxSize = 22 }) => {
             const containerRef = useRef(null);
             const textRef = useRef(null);
-            
-            // We use a state to trigger re-render with new size, but initial adjustment happens via DOM
             const [fontSize, setFontSize] = useState(maxSize);
 
             useLayoutEffect(() => {
@@ -68,33 +67,25 @@
                 const textEl = textRef.current;
                 if (!container || !textEl) return;
 
-                // 1. Reset to max size to measure true overflow
                 textEl.style.fontSize = `${maxSize}px`;
-                textEl.style.lineHeight = '1.3'; // Tight line height helps fitting
+                textEl.style.lineHeight = '1.3';
 
                 let currentSize = maxSize;
-                
-                // 2. Binary-like reduction or simple loop
-                // We loop down until it fits or hits minSize
-                // Check overflow: scrollHeight > clientHeight
                 while (
                     (container.scrollHeight > container.clientHeight || 
                      container.scrollWidth > container.clientWidth) && 
                     currentSize > minSize
                 ) {
-                    currentSize -= 0.5; // Decrease by 0.5px steps for precision
+                    currentSize -= 0.5;
                     textEl.style.fontSize = `${currentSize}px`;
                 }
-                
-                // 3. Update state to sync React (optional, mainly for consistency)
                 setFontSize(currentSize);
-                
-            }, [text, maxSize, minSize, window.innerHeight]); // Re-run on text change or resize
+            }, [content, maxSize, minSize, window.innerHeight]);
 
             return (
                 <div ref={containerRef} className={`w-full h-full overflow-hidden ${className}`}>
                     <div ref={textRef} style={{ fontSize: `${maxSize}px` }} className="font-bold text-black font-comic leading-snug">
-                        {text}
+                        {content}
                     </div>
                 </div>
             );
@@ -104,19 +95,21 @@
         const RelationshipComic = () => {
             const [gameState, setGameState] = useState('setup'); 
             const [userGender, setUserGender] = useState(null);
+            const [partnerName, setPartnerName] = useState("");
             
             const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
             const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-            const [scores, setScores] = useState({ secure: 0, insecure: 0 });
-            const [history, setHistory] = useState([]);
+            const [scores, setScores] = useState({ constructive: 0, protective: 0 });
+            const [storyDecisions, setStoryDecisions] = useState({}); 
             const [branchPath, setBranchPath] = useState(null);
 
             // --- DATA ---
-            const getStories = (gender) => {
+            const getStories = (gender, customName) => {
                 const isUserMale = gender === 'M';
-                const partner1 = isUserMale ? "Rachel" : "Ryan";
-                const partner2 = isUserMale ? "Stacy" : "Steven"; 
-                const partner4 = isUserMale ? "Christy" : "Chris"; 
+                
+                // Use custom name if provided, otherwise default
+                const pName = customName && customName.trim() !== "" ? customName : (isUserMale ? "Rachel" : "Ryan");
+                
                 const rivalDescription = isUserMale ? "同你差唔多大嘅男仔" : "同你差唔多大嘅女仔";
                 const neighborLabel = "一齊長大嘅街坊";
                 const friendGroup = isUserMale ? "姊妹" : "兄弟";
@@ -125,104 +118,106 @@
                 return [
                 {
                     id: 'story1',
-                    title: `故事一：${partner1} 的情境`,
+                    title: `故事一：日常的漣漪`, 
                     scenes: [
                     {
                         id: 's1_1',
-                        narrator: `${partner1} 成晚都喺屋企照顧緊你。突然間，${himHer}收到個電話，行咗去另一間房聽。${himHer}返嚟話頭先係 Ex 打嚟 Say Hello。你知道佢哋再見亦是朋友，間唔中都有聯絡。`,
+                        narrator: <>{pName} 成晚都喺屋企照顧緊你。突然間，{himHer}收到個電話，行咗去另一間房聽。{himHer}返嚟話頭先係 Ex 打嚟 Say Hello。你知道佢哋再見亦是朋友，間唔中都有聯絡。</>,
                         dialogue: {
-                        speaker: partner1,
+                        speaker: pName,
                         text: "其實我仲有同個 Ex 聯絡，你介唔介意㗎？"
                         },
                         options: [
-                        { label: "A", text: "OK 呀，再見亦是朋友嘛，我都戥你開心嘅。", type: 'secure' },
-                        { label: "B", text: "麻麻地囉，硬係覺得你哋兩個仲有啲嘢咁。", type: 'insecure' }
+                        { label: "A", text: "OK 呀，再見亦是朋友嘛，我都戥你開心嘅。", type: 'constructive' },
+                        { label: "B", text: "麻麻地囉，硬係覺得你哋兩個仲有啲嘢咁。", type: 'protective' }
                         ]
                     },
                     {
                         id: 's1_2',
-                        narrator: `${partner1} 繼續講${himHer}前度嘅嘢，你開始覺得有啲呷醋。其實上個禮拜，有個你以前幾好感嘅人打嚟約你出街，但當時你覺得無咩大不了所以無講。而家你突然醒返起呢單嘢，心諗如果講佢知，佢應該都會呷醋。`,
+                        narrator: <>{pName} 繼續講{himHer}前度嘅嘢，你開始覺得有啲呷醋。其實上個禮拜，有個你以前幾好感嘅人打嚟約你出街，但當時你覺得無咩大不了所以無講。而家你突然醒返起呢單嘢，心諗如果講佢知，佢應該都會呷醋。</>,
                         dialogue: {
                         speaker: "內心獨白",
                         text: "佢係咁講個 Ex... 我應唔應該提下有人約我嗰單嘢?"
                         },
                         options: [
-                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'secure' },
-                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'insecure' }
+                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'constructive' },
+                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'protective' }
                         ]
                     },
                     {
                         id: 's1_3',
-                        narrator: `之後嗰個禮拜，${partner1} 嚟到你屋企。你哋一齊玩得好開心嗰陣，開始傾起關於你哋段關係嘅話題。`,
+                        narrator: <>之後嗰個禮拜，{pName} 嚟到你屋企。你哋一齊玩得好開心嗰陣，開始傾起關於你哋段關係嘅話題。</>,
                         dialogue: {
-                        speaker: partner1,
+                        speaker: pName,
                         text: "我覺得我哋開始認真喇，係時候傾下大家嘅將來點行。"
                         },
                         options: [
-                        { label: "A", text: "好提議呀，大家目標一致，段關係先長久嘛。", type: 'secure' },
-                        { label: "B", text: "不如我哋分開冷靜下...（你驚佢想分手，所以你想斬纜先）", type: 'insecure' }
+                        { label: "A", text: "好提議呀，大家目標一致，段關係先長久嘛。", type: 'constructive' },
+                        { label: "B", text: "不如我哋分開冷靜下...（你驚佢想分手，所以你想斬纜先）", type: 'protective' }
                         ],
                         isEnd: true
                     }
                     ]
                 },
                 {
-                    id: 'story2',
-                    title: `故事二：${partner2} (支持型)`,
-                    scenes: [
-                    {
-                        id: 's2_1',
-                        narrator: `今日你去 ${partner2} 屋企食飯見家長。${partner2} 感覺到你有些少緊張，所以成晚都攬實你安撫你。食食下飯門鐘響，有個${rivalDescription}行入嚟，好熱情咁行埋去攬咗 ${partner2} 一下。${partner2} 介紹話佢係${neighborLabel}。嗰個人走嗰陣，畀咗個新電話號碼 ${partner2} 叫佢得閒搵佢。\n\n你哋食完飯上返車，準備走嗰陣...`,
-                        dialogue: {
-                        speaker: "內心獨白",
-                        text: "佢哋似係老死，不過頭先個動作..."
-                        },
-                        options: [
-                        { label: "A", text: "唔出聲，當佢哋係老死就算。", type: 'secure' },
-                        { label: "B", text: `直接叫佢唔好打畀嗰個人。`, type: 'insecure' }
-                        ]
-                    },
-                    {
-                        id: 's2_2',
-                        narrator: `${partner2} 開始講起嗰個人，話佢哋一齊長大，係好耐嘅老死。見你無咩點出聲，佢就主動向你保證，話佢無打算打畀對方。\n\n之後喺返屋企途中，你約 ${partner2} 聽晚食飯。佢話：「我約咗朋友出去呀。」你以前都同過佢成班朋友出去好多次，所以當佢就咁完咗個話題又無叫埋你，你覺得好驚訝。`,
-                        dialogue: {
-                        speaker: "你",
-                        text: "..."
-                        },
-                        options: [
-                        { label: "A", text: `問：「係咪成班${friendGroup}去玩呀？」`, type: 'secure' },
-                        { label: "B", text: "問：「係咪有咩唔妥呀？」", type: 'insecure' }
-                        ],
-                        isEnd: true
-                    }
-                    ]
-                },
-                {
-                    id: 'story3',
-                    title: `故事三：${partner2} (不支持型)`,
+                    id: 'story_unsupportive',
+                    title: `故事二：孤單的聚會 (版本 A)`, 
+                    // Study 2: Unsupportive Condition
                     scenes: [
                     {
                         id: 's3_1',
-                        narrator: `今日你去 ${partner2} 屋企食飯見家長。食食下飯門鐘響，有個${rivalDescription}行入嚟，好熱情咁行埋去攬咗 ${partner2} 一下。${partner2} 介紹話佢係${neighborLabel}。有一刻，${partner2} 淨係顧住同嗰個人傾偈，無視你講緊咩。嗰個人走嗰陣，畀咗個新電話號碼 ${partner2} 叫佢得閒搵佢。\n\n你哋食完飯上返車，準備走嗰陣...`,
+                        narrator: <>今日你去 {pName} 屋企食飯見家長。食食下飯門鐘響，有個{rivalDescription}行入嚟，好熱情咁行埋去攬咗 {pName} 一下。{pName} 介紹話佢係{neighborLabel}。有一刻，{pName} 淨係顧住同嗰個人傾偈，無視你講緊咩。嗰個人走嗰陣，畀咗個新電話號碼 {pName} 叫佢得閒搵佢。</>,
                         dialogue: {
                         speaker: "內心獨白",
                         text: "佢完全當我透明，嗰個人仲要畀埋電話佢..."
                         },
                         options: [
-                        { label: "A", text: "唔出聲，當佢哋係老死就算。", type: 'secure' },
-                        { label: "B", text: `直接叫佢唔好打畀嗰個人。`, type: 'insecure' }
+                        { label: "A", text: "唔出聲，當佢哋係老死就算。", type: 'constructive' },
+                        { label: "B", text: `直接叫佢唔好打畀嗰個人。`, type: 'protective' }
                         ]
                     },
                     {
                         id: 's3_2',
-                        narrator: `${partner2} 提到佢哋係一齊長大嘅老死。之後喺返屋企途中，你約 ${partner2} 聽晚食飯。佢話：「我約咗朋友出去呀。」你以前都同過佢成班朋友出去好多次，所以當佢就咁轉話題又無叫埋你，你覺得好驚訝。`,
+                        narrator: <>{pName} 提到佢哋係一齊長大嘅老死。之後喺返屋企途中，你約 {pName} 聽晚食飯。佢話：「我約咗朋友出去呀。」你以前都同過佢成班朋友出去好多次，所以當佢就咁轉話題又無叫埋你，你覺得好驚訝。</>,
                         dialogue: {
                         speaker: "你",
                         text: "..."
                         },
                         options: [
-                        { label: "A", text: `問：「係咪成班${friendGroup}去玩呀？」`, type: 'secure' },
-                        { label: "B", text: "問：「係咪有咩唔妥呀？」", type: 'insecure' }
+                        { label: "A", text: `問：「係咪成班${friendGroup}去玩呀？」`, type: 'constructive' },
+                        { label: "B", text: "問：「係咪有咩唔妥呀？」", type: 'protective' }
+                        ],
+                        isEnd: true
+                    }
+                    ]
+                },
+                {
+                    id: 'story_supportive',
+                    title: `故事二：孤單的聚會 (版本 B)`, 
+                    // Study 2: Supportive Condition - Text is subtle, relies on user observation
+                    scenes: [
+                    {
+                        id: 's2_1',
+                        narrator: <>今日你去 {pName} 屋企食飯見家長。{pName} 感覺到你有些少緊張，所以成晚都攬實你安撫你。食食下飯門鐘響，有個{rivalDescription}行入嚟，好熱情咁行埋去攬咗 {pName} 一下。{pName} 介紹話佢係{neighborLabel}。嗰個人走嗰陣，畀咗個新電話號碼 {pName} 叫佢得閒搵佢。</>,
+                        dialogue: {
+                        speaker: "內心獨白",
+                        text: "佢哋似係老死，不過頭先個動作..."
+                        },
+                        options: [
+                        { label: "A", text: "唔出聲，當佢哋係老死就算。", type: 'constructive' },
+                        { label: "B", text: `直接叫佢唔好打畀嗰個人。`, type: 'protective' }
+                        ]
+                    },
+                    {
+                        id: 's2_2',
+                        narrator: <>{pName} 開始講起嗰個人，話佢哋一齊長大，係好耐嘅老死。見你無咩點出聲，佢就主動向你保證，話佢無打算打畀對方。<br/>之後喺返屋企途中，你約 {pName} 聽晚食飯。佢話：「我約咗朋友出去呀。」你以前都同過佢成班朋友出去好多次，所以當佢就咁完咗個話題又無叫埋你，你覺得好驚訝。</>,
+                        dialogue: {
+                        speaker: "你",
+                        text: "..."
+                        },
+                        options: [
+                        { label: "A", text: `問：「係咪成班${friendGroup}去玩呀？」`, type: 'constructive' },
+                        { label: "B", text: "問：「係咪有咩唔妥呀？」", type: 'protective' }
                         ],
                         isEnd: true
                     }
@@ -230,47 +225,48 @@
                 },
                 {
                     id: 'story4',
-                    title: `故事四：${partner4} 分支`,
+                    title: `最終章：雙向的鏡子`,
+                    // Study 3: Iterative / Mirror Effect
                     isBranching: true,
                     scenes: [
                     {
                         id: 's4_1',
                         branchId: 'root',
-                        narrator: `${partner4} 收個電話行開咗。二十分鐘後佢返嚟，話頭先係 Ex 打嚟 Say Hello。你知道佢哋再見亦是朋友，間唔中都有聯絡。`,
+                        narrator: <>{pName} 收個電話行開咗。二十分鐘後佢返嚟，話頭先係 Ex 打嚟 Say Hello。你知道佢哋再見亦是朋友，間唔中都有聯絡。</>,
                         dialogue: {
-                        speaker: partner4,
+                        speaker: pName,
                         text: "其實我仲有同個 Ex 聯絡，你介唔介意㗎？"
                         },
                         options: [
-                        { label: "A", text: "OK 呀，再見亦是朋友嘛，我都戥你開心嘅。", type: 'secure', setBranch: 'path_a' },
-                        { label: "B", text: "麻麻地囉，硬係覺得你哋兩個仲有啲嘢咁。", type: 'insecure', setBranch: 'path_b' }
+                        { label: "A", text: "OK 呀，再見亦是朋友嘛，我都戥你開心嘅。", type: 'constructive', setBranch: 'path_a' },
+                        { label: "B", text: "麻麻地囉，硬係覺得你哋兩個仲有啲嘢咁。", type: 'protective', setBranch: 'path_b' }
                         ]
                     },
                     {
                         id: 's4_2_a',
                         branchId: 'path_a',
-                        narrator: `${partner4} 安慰你話佢同前度無嘢，佢淨係在意你一個。不過，佢繼續講關於前度嘅嘢，你開始覺得有啲呷醋。你醒起上個禮拜有個你以前幾好感嘅人打嚟約你，但你當時無提。`,
+                        narrator: <>{pName} 安慰你話佢同前度無嘢，佢淨係在意你一個。不過，佢繼續講關於前度嘅嘢，你開始覺得有啲呷醋。你醒起上個禮拜有個你以前幾好感嘅人打嚟約你，但你當時無提。</>,
                         dialogue: {
                         speaker: "內心獨白",
-                        text: "佢係咁講個 Ex... 我應唔應該提下有人約我嗰單嘢?"
+                        text: "雖然佢態度幾好... 但我應唔應該提下有人約我?"
                         },
                         options: [
-                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'secure' },
-                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'insecure' }
+                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'constructive' },
+                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'protective' }
                         ],
                         isEnd: true
                     },
                     {
                         id: 's4_2_b',
                         branchId: 'path_b',
-                        narrator: `${partner4} 話：「我都唔明點解你會咁諗，你成日都亂咁擔心。」佢繼續講關於前度嘅嘢，你開始覺得有啲呷醋。你醒起上個禮拜有個你以前幾好感嘅人打嚟約你，但你當時無提。`,
+                        narrator: <>{pName} 覺得你好煩，話：「我都唔明點解你會咁諗，你成日都亂咁擔心。」佢繼續講關於前度嘅嘢，你開始覺得有啲呷醋。你醒起上個禮拜有個你以前幾好感嘅人打嚟約你，但你當時無提。</>,
                         dialogue: {
                         speaker: "內心獨白",
-                        text: "佢係咁講個 Ex... 我應唔應該提下有人約我嗰單嘢?"
+                        text: "佢咁嘅態度... 我應唔應該提下有人約我?"
                         },
                         options: [
-                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'secure' },
-                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'insecure' }
+                        { label: "A", text: "唔提算數，費事佢呷醋。", type: 'constructive' },
+                        { label: "B", text: "扮無嘢提下有人約我，希望佢會覺得有啲呷醋。", type: 'protective' }
                         ],
                         isEnd: true
                     }
@@ -279,16 +275,34 @@
                 ];
             };
 
-            const stories = userGender ? getStories(userGender) : [];
+            const stories = userGender ? getStories(userGender, partnerName) : [];
 
-            const handleGenderSelect = (gender) => { setUserGender(gender); setGameState('intro'); };
-            const handleStart = () => { setCurrentStoryIndex(0); setCurrentSceneIndex(0); setScores({ secure: 0, insecure: 0 }); setHistory([]); setBranchPath(null); setGameState('transition'); };
+            const handleGenderSelect = (gender) => { 
+                setUserGender(gender); 
+                setGameState('name_input'); 
+            };
+
+            const handleNameSubmit = (name) => {
+                setPartnerName(name); 
+                setGameState('intro');
+            }
+
+            const handleStart = () => { setCurrentStoryIndex(0); setCurrentSceneIndex(0); setScores({ constructive: 0, protective: 0 }); setStoryDecisions({}); setBranchPath(null); setGameState('transition'); };
             const handleNextStory = () => { setGameState('playing'); };
+            
             const handleOptionClick = (option) => {
                 setScores(prev => ({ ...prev, [option.type]: prev[option.type] + 1 }));
+                
+                const currentStoryId = stories[currentStoryIndex].id;
+                setStoryDecisions(prev => ({
+                    ...prev,
+                    [currentStoryId]: [...(prev[currentStoryId] || []), option.type]
+                }));
+
                 if (option.setBranch) setBranchPath(option.setBranch);
                 const currentStory = stories[currentStoryIndex];
                 const currentScene = currentStory.scenes[currentSceneIndex];
+                
                 if (currentScene.isEnd) {
                     if (currentStoryIndex + 1 < stories.length) {
                         setCurrentStoryIndex(prev => prev + 1);
@@ -300,12 +314,14 @@
                     }
                     return;
                 }
+                
                 let nextSceneIdx = currentSceneIndex + 1;
                 if (currentStory.isBranching) {
                     const activeBranch = option.setBranch || branchPath;
                     const targetIndex = currentStory.scenes.findIndex(s => s.branchId === activeBranch);
                     if (targetIndex !== -1) nextSceneIdx = targetIndex;
                 }
+                
                 if (nextSceneIdx < currentStory.scenes.length) {
                     setCurrentSceneIndex(nextSceneIdx);
                 } else {
@@ -317,19 +333,244 @@
             if (gameState === 'setup') {
                 return (<div className="w-full h-[100dvh] bg-cyan-300 flex items-center justify-center font-sans p-[3vmin]"><div className="w-full max-w-lg bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] text-center rounded-lg flex flex-col justify-center"><h1 className="font-black uppercase mb-[4vmin] tracking-tight text-black transform -rotate-1" style={{fontSize: 'clamp(24px, 7vmin, 40px)'}}>請選擇你的性別</h1><p className="mb-[6vmin] text-gray-700 font-bold" style={{fontSize: 'clamp(16px, 4vmin, 22px)'}}>我們會根據你的性別調整故事角色，令你更有代入感。</p><div className="grid grid-cols-2 gap-[3vmin]"><button onClick={() => handleGenderSelect('M')} className="bg-blue-200 p-[3vmin] border-[0.6vmin] border-black hover:bg-blue-300 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex flex-col items-center justify-center gap-[1vmin]"><User className="text-black" style={{fontSize: 'clamp(32px, 10vmin, 64px)'}}/><span className="font-black text-black" style={{fontSize: 'clamp(16px, 4.5vmin, 28px)'}}>我是男生</span></button><button onClick={() => handleGenderSelect('F')} className="bg-pink-200 p-[3vmin] border-[0.6vmin] border-black hover:bg-pink-300 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex flex-col items-center justify-center gap-[1vmin]"><User className="text-black" style={{fontSize: 'clamp(32px, 10vmin, 64px)'}} /><span className="font-black text-black" style={{fontSize: 'clamp(16px, 4.5vmin, 28px)'}}>我是女生</span></button></div></div></div>);
             }
-            if (gameState === 'intro') {
-                return (<div className="w-full h-[100dvh] bg-yellow-400 flex flex-col items-center justify-center font-sans p-[3vmin]"><div className="w-full max-w-lg h-full max-h-[85dvh] bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] flex flex-col rounded-lg"><div className="flex justify-between items-center mb-[2vmin] border-b-[0.6vmin] border-black pb-[2vmin]"><h1 className="font-black uppercase tracking-tighter text-black transform -rotate-2" style={{fontSize: 'clamp(24px, 8vmin, 48px)'}}>戀愛大冒險</h1></div><div className="flex-1 flex flex-col justify-center items-center mb-[4vmin]"><div className="bg-blue-500 p-[4vmin] border-[0.6vmin] border-black shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] mb-[4vmin] rounded-lg"><Heart color="white" fill="white" style={{fontSize: 'clamp(48px, 15vmin, 80px)'}} /></div><p className="font-bold leading-snug text-black text-center px-[2vmin]" style={{fontSize: 'clamp(16px, 4.5vmin, 24px)'}}>經歷四個唔同嘅戀愛故事。你嘅選擇將會反映你嘅依戀風格係屬於「安全型」定係「不安全型」。</p></div><button onClick={handleStart} className="w-full bg-red-500 text-white font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-red-600 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md transition-all" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}>開始遊戲</button></div></div>);
-            }
-            if (gameState === 'transition') {
-                return (<div className="w-full h-[100dvh] bg-purple-600 flex flex-col items-center justify-center font-sans p-[3vmin]"><div className="w-full max-w-lg bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[6vmin] text-center animate-in fade-in zoom-in duration-300 rounded-lg"><div className="inline-block bg-black text-white px-[3vmin] py-[1vmin] font-black uppercase mb-[3vmin] transform -rotate-2 border-[0.4vmin] border-white" style={{fontSize: 'clamp(14px, 4vmin, 24px)'}}>Coming Up Next</div><h2 className="font-black uppercase mb-[2vmin] leading-tight text-black" style={{fontSize: 'clamp(24px, 7vmin, 40px)'}}>{stories[currentStoryIndex].title}</h2><div className="w-1/3 h-[1vmin] bg-yellow-400 border-[0.3vmin] border-black mb-[6vmin] mx-auto transform rotate-3"></div><p className="text-gray-800 mb-[6vmin] font-bold" style={{fontSize: 'clamp(16px, 4.5vmin, 26px)'}}>準備好做決定未？</p><button onClick={handleNextStory} className="w-full bg-green-400 text-black font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-green-500 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex items-center justify-center gap-[2vmin]" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}><span>進入場景</span><ArrowRight strokeWidth={3} /></button></div></div>);
-            }
-            if (gameState === 'summary') {
-                const total = scores.secure + scores.insecure;
-                const securePercent = Math.round((scores.secure / total) * 100);
-                return (<div className="w-full h-[100dvh] bg-teal-500 flex flex-col items-center justify-center font-sans p-[3vmin]"><div className="w-full max-w-lg h-full max-h-[90dvh] bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] flex flex-col rounded-lg"><h2 className="font-black uppercase mb-[2vmin] text-center text-black shrink-0" style={{fontSize: 'clamp(28px, 8vmin, 48px)'}}>結局！</h2><div className="grid grid-cols-2 gap-[3vmin] mb-[3vmin] shrink-0"><div className="bg-green-100 p-[2vmin] border-[0.6vmin] border-black text-center rounded-lg shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,1)]"><div className="font-black mb-1 text-black" style={{fontSize: 'clamp(32px, 10vmin, 60px)'}}>{scores.secure}</div><div className="font-bold uppercase text-black" style={{fontSize: 'clamp(12px, 3vmin, 18px)'}}>安全型</div></div><div className="bg-red-100 p-[2vmin] border-[0.6vmin] border-black text-center rounded-lg shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,1)]"><div className="font-black mb-1 text-black" style={{fontSize: 'clamp(32px, 10vmin, 60px)'}}>{scores.insecure}</div><div className="font-bold uppercase text-black" style={{fontSize: 'clamp(12px, 3vmin, 18px)'}}>不安全型</div></div></div><div className="mb-[2vmin] border-t-[0.6vmin] border-black pt-[2vmin] flex-1 overflow-y-auto min-h-0"><h3 className="font-bold mb-[1vmin] text-black" style={{fontSize: 'clamp(18px, 5vmin, 30px)'}}>分析</h3><p className="leading-relaxed text-black font-medium" style={{fontSize: 'clamp(16px, 4.5vmin, 24px)'}}>{securePercent > 70 ? "你主要係「安全型」依戀！你信任伴侶，肯坦誠溝通。" : securePercent > 40 ? "你係「混合型」。有時會信人，但有時又會亂諗呷醋。" : "你傾向「不安全型」。有壓力嗰陣，你容易呷醋或者想逃避。"}</p></div><button onClick={() => setGameState('setup')} className="w-full bg-yellow-400 text-black font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-yellow-500 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex justify-center items-center gap-[2vmin] shrink-0" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}><RefreshCcw />再玩一次</button></div></div>);
+
+            // --- NAME INPUT ---
+            if (gameState === 'name_input') {
+                return (
+                    <div className="w-full h-[100dvh] bg-lime-300 flex items-center justify-center font-sans p-[3vmin]">
+                        <div className="w-full max-w-lg bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] text-center rounded-lg flex flex-col justify-center">
+                            <h1 className="font-black uppercase mb-[2vmin] tracking-tight text-black" style={{fontSize: 'clamp(20px, 6vmin, 32px)'}}>
+                                增加代入感
+                            </h1>
+                            <p className="mb-[4vmin] text-gray-700 font-bold leading-snug" style={{fontSize: 'clamp(14px, 3.5vmin, 20px)'}}>
+                                為咗令故事更真實，你可以輸入你真實（或理想中）伴侶嘅名字。
+                            </p>
+                            
+                            <input 
+                                type="text" 
+                                placeholder={userGender === 'M' ? "例如: Rachel" : "例如: Ryan"}
+                                className="w-full p-[2vmin] border-[0.4vmin] border-black rounded-md mb-[4vmin] font-bold text-center text-xl bg-gray-50 focus:bg-white outline-none"
+                                id="pNameInput"
+                            />
+
+                            <div className="flex flex-col gap-[2vmin]">
+                                <button onClick={() => handleNameSubmit(document.getElementById('pNameInput').value)} className="w-full bg-orange-400 text-black font-black py-[2.5vmin] border-[0.6vmin] border-black hover:bg-orange-500 active:translate-y-1 active:shadow-none shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,1)] rounded-md" style={{fontSize: 'clamp(16px, 4.5vmin, 24px)'}}>
+                                    確定 (Confirm)
+                                </button>
+                                <button onClick={() => handleNameSubmit("")} className="w-full bg-gray-200 text-gray-700 font-black py-[2.5vmin] border-[0.6vmin] border-black hover:bg-gray-300 active:translate-y-1 active:shadow-none shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,1)] rounded-md" style={{fontSize: 'clamp(16px, 4.5vmin, 24px)'}}>
+                                    跳過，使用預設名字
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
             }
 
-            // --- PLAYING SCREEN ---
+            if (gameState === 'intro') {
+                return (<div className="w-full h-[100dvh] bg-yellow-400 flex flex-col items-center justify-center font-sans p-[3vmin]"><div className="w-full max-w-lg h-full max-h-[85dvh] bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] flex flex-col rounded-lg"><div className="flex justify-between items-center mb-[2vmin] border-b-[0.6vmin] border-black pb-[2vmin]"><h1 className="font-black uppercase tracking-tighter text-black transform -rotate-2" style={{fontSize: 'clamp(24px, 8vmin, 48px)'}}>戀愛大冒險</h1></div>
+                <div className="flex-1 flex flex-col justify-center items-center mb-[4vmin]">
+                    <div className="bg-blue-500 p-[4vmin] border-[0.6vmin] border-black shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] mb-[4vmin] rounded-lg"><Heart color="white" fill="white" style={{fontSize: 'clamp(48px, 15vmin, 80px)'}} /></div>
+                    
+                    <div className="bg-gray-100 p-[2vmin] border-l-[1vmin] border-black">
+                        <p className="font-bold leading-snug text-black text-left px-[1vmin]" style={{fontSize: 'clamp(14px, 4vmin, 20px)'}}>
+                            你即將進入一個互動故事，你係故事嘅主角。
+                            <br/><br/>
+                            <span className="text-blue-700">重要指引：</span>
+                            請將自己代入情境，並選擇你在<span className="underline decoration-2 decoration-red-500">真實戀愛關係中最有可能做出嘅決定</span>（即使嗰個未必係最完美嘅決定）。
+                        </p>
+                    </div>
+
+                </div>
+                <button onClick={handleStart} className="w-full bg-red-500 text-white font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-red-600 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md transition-all" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}>開始遊戲</button></div></div>);
+            }
+
+            // --- TRANSITION ---
+            if (gameState === 'transition') {
+                const isAlternativeVersion = stories[currentStoryIndex].id === 'story_supportive';
+                
+                return (
+                    <div className="w-full h-[100dvh] bg-purple-600 flex flex-col items-center justify-center font-sans p-[3vmin]">
+                        <div className="w-full max-w-lg bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[6vmin] text-center animate-in fade-in zoom-in duration-300 rounded-lg">
+                            <div className="inline-block bg-black text-white px-[3vmin] py-[1vmin] font-black uppercase mb-[3vmin] transform -rotate-2 border-[0.4vmin] border-white" style={{fontSize: 'clamp(14px, 4vmin, 24px)'}}>Coming Up Next</div>
+                            <h2 className="font-black uppercase mb-[2vmin] leading-tight text-black" style={{fontSize: 'clamp(24px, 7vmin, 40px)'}}>
+                                {stories[currentStoryIndex].title}
+                            </h2>
+                            <div className="w-1/3 h-[1vmin] bg-yellow-400 border-[0.3vmin] border-black mb-[6vmin] mx-auto transform rotate-3"></div>
+                            
+                            {isAlternativeVersion && (
+                                <div className="bg-rose-100 p-[2vmin] border-[0.4vmin] border-rose-500 mb-[4vmin] rounded text-left">
+                                    <p className="text-rose-800 font-bold" style={{fontSize: 'clamp(14px, 4vmin, 22px)'}}>
+                                        ⚠️ 留意：在這個平行時空，伴侶的反應與剛才截然不同。請仔細觀察分別...
+                                    </p>
+                                </div>
+                            )}
+
+                            <p className="text-gray-800 mb-[6vmin] font-bold" style={{fontSize: 'clamp(16px, 4.5vmin, 26px)'}}>
+                                {isAlternativeVersion ? "準備好重新選擇未？" : "準備好做決定未？"}
+                            </p>
+                            <button onClick={handleNextStory} className="w-full bg-green-400 text-black font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-green-500 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex items-center justify-center gap-[2vmin]" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}><span>進入場景</span><ArrowRight strokeWidth={3} /></button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- RESEARCH MODAL (Final Approved Version) ---
+            if (gameState === 'research') {
+                return (
+                    <div className="w-full h-[100dvh] bg-indigo-100 flex flex-col items-center justify-center font-sans p-[3vmin]">
+                         <div className="w-full max-w-lg h-full max-h-[90dvh] bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] flex flex-col rounded-lg">
+                            <div className="flex justify-between items-center border-b-[0.4vmin] border-black pb-2 mb-4">
+                                <h2 className="font-black text-xl uppercase">關於 Vicary & Fraley (2007) 原刊研究</h2>
+                                <button onClick={() => setGameState('summary')}><X size={28} /></button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                                <div className="text-sm font-bold text-gray-500 uppercase">Citation</div>
+                                <p className="font-medium text-sm leading-snug">
+                                    Vicary, A. M., & Fraley, R. C. (2007). Choose your own adventure: Attachment dynamics in a simulated relationship. <em>Personality and Social Psychology Bulletin</em>, 33(9), 1279-1291.
+                                </p>
+
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 text-sm mb-1">研究背景與目的 (Study Context)</h3>
+                                    <p className="text-xs text-slate-700 leading-relaxed">
+                                        這項研究並非單純的心理測驗，而是一個實驗。研究員利用「互動小說」(Interactive Fiction) 的方式，模擬一段持續發展的戀愛關係。
+                                        <br/><br/>
+                                        他們的主要目的是測試：當人們在關係中面對抉擇時，他們原本的「依戀風格」會如何影響他們的決定？以及他們能否隨著時間，從伴侶的反應中「學習」並改善關係。
+                                    </p>
+                                </div>
+
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 text-sm mb-1">研究方法與分析 (Methodology)</h3>
+                                    <ul className="list-disc pl-4 space-y-1 text-xs text-slate-700">
+                                        <li><strong>更長的互動：</strong> 原始研究包含 20 個連續決策點，而不僅僅是這個試玩版中的 4 個。</li>
+                                        <li><strong>數據分析 (Slope Analysis)：</strong> 研究員使用統計學上的「階層迴歸分析」(Hierarchical Regression)，計算參加者在故事進程中的「改變率」(Slope)。</li>
+                                        <li><strong>發現：</strong> 研究發現，即使是缺乏安全感的人，隨著故事發展也會慢慢學會做出更好的選擇（Positive Slope），只是他們的學習速度比安全型的人慢。</li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                    <h3 className="font-bold text-amber-900 text-sm mb-1">關於依戀風格測試</h3>
+                                    <p className="text-xs text-amber-800 leading-relaxed">
+                                        本遊戲主要是展示研究中的互動概念（如：自我實現預言）。
+                                        在原始研究中，參加者在開始故事前，必須先填寫一份包含 36 條問題的 <strong>「親密關係體驗量表」(ECR-R)</strong>。
+                                        <br/><br/>
+                                        如果你想準確知道自己屬於「安全型」、「焦慮型」還是「逃避型」，我們強烈建議你尋找完整的 ECR-R 問卷進行評估。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button onClick={() => setGameState('summary')} className="mt-4 w-full bg-black text-white font-bold py-3 rounded border-[0.4vmin] border-black active:scale-95 transition-transform">
+                                返回結果
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+            
+            // --- SUMMARY COMPONENT ---
+            if (gameState === 'summary') {
+                const total = scores.constructive + scores.protective;
+                const securePercent = Math.round((scores.constructive / total) * 100);
+                
+                const s1Choices = storyDecisions['story1'] || [];
+                const sUnsupChoices = storyDecisions['story_unsupportive'] || [];
+                const sSupChoices = storyDecisions['story_supportive'] || [];
+                const s4Choices = storyDecisions['story4'] || [];
+                
+                const baselineTrust = s1Choices[0] === 'constructive'; 
+                
+                const wasDefensiveInBad = sUnsupChoices.includes('protective');
+                const wasDefensiveInGood = sSupChoices.includes('protective');
+                let envInsight = "";
+                if (wasDefensiveInBad && !wasDefensiveInGood) {
+                    envInsight = "適應力強：你在惡劣環境會保護自己，但在安全環境下願意信任。這是健康的反應。";
+                } else if (wasDefensiveInBad && wasDefensiveInGood) {
+                    envInsight = "高度戒備：即使伴侶轉變得友善支持，你依然保持距離。研究指這常見於「逃避型」依戀，反映你可能因為過去的經驗而難以完全信任好意。";
+                } else if (!wasDefensiveInBad && !wasDefensiveInGood) {
+                    envInsight = "極度信任：無論環境好壞，你都選擇信任。這顯示你有很強的安全感，但也要小心過度包容。";
+                } else {
+                    envInsight = "反應不一：你的選擇在不同環境下較為隨機。";
+                }
+
+                const mirrorSuccess = s4Choices[0] === 'constructive';
+
+                return (
+                    <div className="w-full h-[100dvh] bg-teal-500 flex flex-col items-center justify-center font-sans p-[3vmin]">
+                        <div className="w-full max-w-lg h-full max-h-[90dvh] bg-white border-[0.8vmin] border-black shadow-[1.5vmin_1.5vmin_0px_0px_rgba(0,0,0,1)] p-[4vmin] flex flex-col rounded-lg">
+                            <h2 className="font-black uppercase mb-[2vmin] text-center text-black shrink-0" style={{fontSize: 'clamp(24px, 6vmin, 40px)'}}>
+                                冒險結果報告
+                            </h2>
+                            
+                            <div className="bg-gray-100 p-[3vmin] border-[0.6vmin] border-black rounded-lg mb-[3vmin] shrink-0">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="font-bold text-black text-sm">關係建設指數 (Relationship Builder)</span>
+                                    <span className="font-black text-black text-2xl">{securePercent}%</span>
+                                </div>
+                                <div className="w-full h-[2vmin] bg-white border-[0.4vmin] border-black rounded-full overflow-hidden">
+                                    <div className="h-full bg-green-400" style={{width: `${securePercent}%`}}></div>
+                                </div>
+                                <p className="mt-2 text-xs font-bold text-gray-600">
+                                    {securePercent > 70 ? "戀愛高材生：你傾向透過信任同溝通去解決問題。" : 
+                                     securePercent > 40 ? "謹慎觀察者：你有建設性，但有時會啟動自我保護機制。" : 
+                                     "自我保護型：你習慣先保護自己，避免受傷，但可能會推開對方。"}
+                                </p>
+                            </div>
+
+                            <div className="mb-[2vmin] border-t-[0.6vmin] border-black pt-[2vmin] flex-1 overflow-y-auto min-h-0 space-y-[2vmin]">
+                                
+                                <div className="bg-blue-50 p-[2vmin] border-[0.4vmin] border-blue-200 rounded-md">
+                                    <h3 className="font-black text-blue-800 flex items-center gap-2 text-sm uppercase">
+                                        <Activity size={16}/> 第一關：你的直覺
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-gray-700 mt-1 leading-snug">
+                                        在第一關，伴侶的行為是中立的。
+                                        {baselineTrust 
+                                            ? " 你選擇了信任。這代表你的「內在運作模式」傾向相信伴侶是可靠的。" 
+                                            : " 你選擇了懷疑。這指出當環境不明朗時，你傾向預設對方會傷害你。"}
+                                    </p>
+                                </div>
+
+                                <div className="bg-purple-50 p-[2vmin] border-[0.4vmin] border-purple-200 rounded-md">
+                                    <h3 className="font-black text-purple-800 flex items-center gap-2 text-sm uppercase">
+                                        <Thermometer size={16}/> 第二關：環境測試
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-gray-700 mt-1 leading-snug">
+                                        我們讓你先經歷冷漠的伴侶，再經歷熱情的伴侶。
+                                        <br/>
+                                        <span className="font-bold">{envInsight}</span>
+                                    </p>
+                                </div>
+
+                                <div className="bg-pink-50 p-[2vmin] border-[0.4vmin] border-pink-200 rounded-md">
+                                    <h3 className="font-black text-pink-800 flex items-center gap-2 text-sm uppercase">
+                                        <Lock size={16}/> 最終章：雙向的鏡子
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-gray-700 mt-1 leading-snug">
+                                        留意到了嗎？伴侶的反應完全取決於你。
+                                        {mirrorSuccess 
+                                            ? " 你友善的回應換來了對方的安慰。" 
+                                            : " 你懷疑的態度令對方變得抗拒。"} 
+                                        這就是「自我實現預言」——有時我們因害怕被拒絕而先發制人，反而製造了衝突。
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 mt-2 shrink-0">
+                                <button onClick={() => setGameState('research')} className="w-full bg-indigo-100 text-indigo-900 font-bold py-[2vmin] border-[0.6vmin] border-indigo-900 rounded-md flex justify-center items-center gap-[1vmin]" style={{fontSize: 'clamp(14px, 4vmin, 20px)'}}>
+                                    <FileText size={18} />
+                                    關於原刊研究
+                                </button>
+                                <button onClick={() => setGameState('setup')} className="w-full bg-yellow-400 text-black font-black py-[3vmin] border-[0.6vmin] border-black hover:bg-yellow-500 active:translate-y-1 active:shadow-none shadow-[0.8vmin_0.8vmin_0px_0px_rgba(0,0,0,1)] rounded-md flex justify-center items-center gap-[2vmin]" style={{fontSize: 'clamp(18px, 5vmin, 32px)'}}>
+                                    <RefreshCcw />
+                                    再玩一次
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- PLAYING SCREEN (Standard) ---
             const currentStory = stories[currentStoryIndex];
             const currentScene = currentStory.scenes[currentSceneIndex];
             const sceneKey = `${currentStory.id}-${currentScene.id}`;
@@ -338,7 +579,6 @@
                 <div className="w-full h-[100dvh] bg-sky-200 flex flex-col items-center justify-center font-sans p-[2vmin] overflow-hidden">
                     <div className="w-full max-w-lg flex flex-col justify-center gap-[1.5vmin] h-full max-h-[100dvh]">
                         
-                        {/* Header */}
                         <div className="shrink-0 flex justify-between items-center bg-white border-[0.6vmin] border-black px-[3vmin] py-[1.5vmin] shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,1)] rounded-md">
                             <div className="font-black uppercase tracking-wide truncate mr-2 text-black" style={{fontSize: 'clamp(16px, 5vmin, 24px)'}}>
                                 {currentStory.title}
@@ -348,18 +588,15 @@
                             </div>
                         </div>
 
-                        {/* SCENE CARD (Flexible height, text auto-scales to fit) */}
                         <div className="flex-1 min-h-0 bg-yellow-200 border-[0.6vmin] border-black p-0 relative shadow-[0.6vmin_0.6vmin_0px_0px_rgba(0,0,0,0.2)] rounded-md flex flex-col">
                             <div className="bg-black text-white px-[2vmin] py-[0.5vmin] font-bold uppercase inline-block border-b-[0.6vmin] border-r-[0.6vmin] border-black self-start relative z-10" style={{fontSize: 'clamp(10px, 2.5vmin, 14px)'}}>
                                 SCENE
                             </div>
-                            {/* The container for AutoFitText takes all remaining space in the card */}
                             <div className="p-[3vmin] pt-[1vmin] flex-1 overflow-hidden relative">
-                                <AutoFitText text={currentScene.narrator} />
+                                <AutoFitText content={currentScene.narrator} />
                             </div>
                         </div>
 
-                        {/* DIALOGUE (Natural size) */}
                         <div className="flex-none flex flex-col items-start pl-0 md:pl-[2vmin] shrink-0">
                             <div className="shrink-0 mb-[0.5vmin] font-black uppercase text-black ml-[1vmin] tracking-wider flex items-center gap-[1vmin] bg-white border-[0.4vmin] border-black px-[1.5vmin] py-[0.2vmin] inline-flex transform -rotate-1" style={{fontSize: 'clamp(10px, 2.5vmin, 14px)'}}>
                                 {currentScene.dialogue.speaker === '內心獨白' ? <BookOpen /> : <User />}
@@ -383,7 +620,6 @@
                             </div>
                         </div>
 
-                        {/* CHOICES (Natural size) */}
                         <div className="flex-none flex flex-col shrink-0 pt-[1vmin]">
                             <div className="shrink-0 font-bold mb-[1vmin] text-black uppercase tracking-widest flex items-center gap-[1vmin] ml-[0.5vmin]" style={{fontSize: 'clamp(10px, 2.5vmin, 14px)'}}>
                                 <div className="bg-blue-500 text-white p-[0.5vmin] border-[0.3vmin] border-black"><MessageCircle /></div>
@@ -419,5 +655,3 @@
     </script>
 </body>
 </html>
-
-
